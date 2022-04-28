@@ -31,62 +31,60 @@ val remoteFilePath = "https://www.eclipse.org/downloads/download.php?file=/techn
 val zipFileName = "eclipse-java-2021-06-R-win32-x86_64.zip"
 
 tasks {
-    val downloadEclipseTask by creating(Download::class) {
+    val downloadEclipseTask by registering(Download::class) {
         group = "my_tasks"
-        description = "Downloads an important file ASAP"
+        description = "Downloads an important file"
 
         src(remoteFilePath)
-        dest(buildDir.absolutePath)
+        dest(File(buildDir.absolutePath, zipFileName))
         overwrite(false)
         download()
     }
 
-    val unpackEclipseTask by creating() {
-        group = "my_tasks"
-        description = "Unpacks an important file ASAP"
-
-        println("Unpacking $zipFileName")
+    val downloadAndUnpackEclipseTask by registering() {
         dependsOn(downloadEclipseTask)
-        unzipTo(buildDir, buildDir.resolve(zipFileName))
-        println("File unzip finished.")
+        group = "my_tasks"
+        description = "Unpacks the important file"
+
+        println("Unpacking ${downloadEclipseTask.get().dest} into $buildDir")
+        unzipTo(buildDir, downloadEclipseTask.get().dest)
     }
 }
 
-subprojects.forEach {
-    val cleanTask = it.tasks.clean.get()
-    val buildTask = it.tasks.build.get()
-    it.tasks {
-        buildTask.dependsOn(cleanTask)
 
-        val copyStuffTask = this.create<Copy>("copyStuffTask") {
-            group = "my_tasks"
-            description = "Copies important stuff in the real project, but just duplicates stuff here"
-            mustRunAfter(buildTask)
+project.subprojects.forEach {subproject ->
+    subproject.afterEvaluate {
 
-            doLast {
-                from(it.buildDir.resolve("classes"))
-                to(it.buildDir.resolve("classes-copied"))
+        val cleanTask = tasks.clean.get()
+        val assembleTask = tasks.assemble.get()
+        val buildTask = tasks.build.get()
+        assembleTask.dependsOn(cleanTask)
+
+        tasks {
+            val copyStuff = register<Copy>("CopyStuff") {
+                group = "my_tasks"
+                description = "Copies important stuff in the real project, but just duplicates stuff here"
+                dependsOn(buildTask)
+                println("Copying ${subproject.buildDir.resolve("classes").absolutePath} to ${subproject.buildDir.resolve("classes-copied").absolutePath}")
+                from(subproject.buildDir.resolve("classes").absolutePath)
+                into(subproject.buildDir.resolve("classes-copied").absolutePath)
             }
-        }
 
-        val copyStuff2Task = this.create<Copy>("copyStuffTask") {
-            group = "my_tasks"
-            description = "Copies important stuff in the real project, but just duplicates stuff here"
-            mustRunAfter(buildTask)
-
-            doLast {
-                from(it.buildDir.resolve("generated"))
-                to(it.buildDir.resolve("generated-copied"))
+            val copyStuff2 = register<Copy>("CopyStuff2") {
+                group = "my_tasks"
+                description = "Copies important stuff in the real project, but just duplicates stuff here"
+                dependsOn(buildTask)
+                from(subproject.buildDir.resolve("generated"))
+                into(subproject.buildDir.resolve("generated-copied"))
             }
-        }
 
-        this.create("copyAllTheThingsTask") {
-            group = "my_tasks"
-            description = "Executes all the copy tasks"
+            register("CopyAll") {
+                group = "my_tasks"
+                description = "Runs all the copy tasks"
 
-            this.dependsOn(copyStuffTask)
-            this.dependsOn(copyStuff2Task)
+                dependsOn(copyStuff.get())
+                dependsOn(copyStuff2.get())
+            }
         }
     }
-
 }
