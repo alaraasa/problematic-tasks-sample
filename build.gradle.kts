@@ -31,23 +31,23 @@ val remoteFilePath = "https://www.eclipse.org/downloads/download.php?file=/techn
 val zipFileName = "eclipse-java-2021-06-R-win32-x86_64.zip"
 
 tasks {
-    val downloadEclipseTask by registering(Download::class) {
+    val downloadEclipseTask by creating() {
         group = "my_tasks"
         description = "Downloads an important file"
-
-        src(remoteFilePath)
-        dest(File(buildDir.absolutePath, zipFileName))
-        overwrite(false)
-        download()
+        download.run {
+            src(remoteFilePath)
+            dest(File(buildDir.absolutePath, zipFileName))
+            overwrite(false)
+        }
     }
 
-    val downloadAndUnpackEclipseTask by registering() {
+    val downloadAndUnpackEclipseTask by creating() {
         dependsOn(downloadEclipseTask)
         group = "my_tasks"
         description = "Unpacks the important file"
 
-        println("Unpacking ${downloadEclipseTask.get().dest} into $buildDir")
-        unzipTo(buildDir, downloadEclipseTask.get().dest)
+        println("Unpacking $buildDir/$zipFileName into $buildDir")
+        unzipTo(buildDir, File(buildDir.resolve(zipFileName).toURI()))
     }
 }
 
