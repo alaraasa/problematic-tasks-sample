@@ -31,24 +31,24 @@ val remoteFilePath = "https://www.eclipse.org/downloads/download.php?file=/techn
 val zipFileName = "eclipse-java-2021-06-R-win32-x86_64.zip"
 
 tasks {
-    val downloadEclipseTask by creating() {
-        group = "my_tasks"
-        description = "Downloads an important file"
-        download.run {
-            src(remoteFilePath)
-            dest(File(buildDir.absolutePath, zipFileName))
-            overwrite(false)
-        }
-    }
-
-    val downloadAndUnpackEclipseTask by creating() {
-        dependsOn(downloadEclipseTask)
-        group = "my_tasks"
-        description = "Unpacks the important file"
-
-        println("Unpacking $buildDir/$zipFileName into $buildDir")
-        unzipTo(buildDir, File(buildDir.resolve(zipFileName).toURI()))
-    }
+//    val downloadEclipseTask by creating() {
+//        group = "my_tasks"
+//        description = "Downloads an important file"
+//        download.run {
+//            src(remoteFilePath)
+//            dest(File(buildDir.absolutePath, zipFileName))
+//            overwrite(false)
+//        }
+//    }
+//
+//    val downloadAndUnpackEclipseTask by creating() {
+//        dependsOn(downloadEclipseTask)
+//        group = "my_tasks"
+//        description = "Unpacks the important file"
+//
+//        println("Unpacking $buildDir/$zipFileName into $buildDir")
+//        unzipTo(buildDir, File(buildDir.resolve(zipFileName).toURI()))
+//    }
 }
 
 
@@ -61,6 +61,12 @@ project.subprojects.forEach {subproject ->
         assembleTask.dependsOn(cleanTask)
 
         tasks {
+//            build {
+//                doLast {
+//                    println("Build finished! And it was the first task that was finished... wasn't it? I mean its in front of the command... I mean it literally says 'clean build CopyAll EpicWin ThisMayFail' - not, for example, 'EpicWin ThisMayFail clean build' which should definitely run the 'build' task last...")
+//                }
+//            }
+
             val copyStuff = register<Copy>("CopyStuff") {
                 group = "my_tasks"
                 description = "Copies important stuff in the real project, but just duplicates stuff here"
@@ -84,6 +90,18 @@ project.subprojects.forEach {subproject ->
 
                 dependsOn(copyStuff.get())
                 dependsOn(copyStuff2.get())
+            }
+
+            register("ThisMayFail") {
+                group = "my_tasks"
+                description = "EPIC WIN/FAIL TASK"
+
+                val willFail = false
+                doLast {
+                    println("Will it fail? Only time will tell...")
+                    if (subproject.buildDir.resolve("classes").exists().not()) throw GradleException("LOL you haven't built your stuff yet. What a dummy!")
+                    println("Guess the build task worked... Sure hope you didn't run the build task AGAIN even if you already did before!")
+                }
             }
         }
     }
